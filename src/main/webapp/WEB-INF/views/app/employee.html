@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+ <head>
+   <!-- Required meta tags -->
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+   <link rel="stylesheet" type="text/css" href="css/main.css">
+
+   <!-- Bootstrap CSS -->
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+
+   <link rel="preconnect" href="https://fonts.gstatic.com">
+   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+   <link rel="preconnect" href="https://fonts.gstatic.com">
+   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+   <title>Alfa Bank</title>
+ </head>
+
+ <body>
+  <main>
+   <section id="header">
+    <div class="container">
+     <h1 class="head">Видеоверификация клиента</h1>
+     <div class="row align-items-center key-code">
+      <div class="col-lg-6">
+        <div class="field-id-name">Ключ-код для подключения к звонку</div>
+        <p id="show-peer" class="field-id"></p>
+      </div>
+      <div class="col-lg-6">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Введите ключ-код" aria-label="Введите ключ-код" id="peerID" name="id">
+          <button class="btn btn-outline-secondary" type="button" id="call-peer"><i class="fa fa-phone" aria-hidden="true"></i>Начать звонок</button>
+        </div>
+      </div>
+     </div>
+     <div class="conf-screens">
+      <div class="row justify-content-md-center videocall">
+        <div class="col-md-12 caller-screen g-0" id="remoteVideo">
+          <div class="client-label">Клиент</div>
+          <button class="btn-shot-client" id="shot"><i class="fa fa-camera" aria-hidden="true"></i>Сфотографировать клиента</button>
+          <div class="row justify-content-md-end">
+            <div class="col-lg-3 col-md-4 col-sm-5 col-5 g-0 our-screen" id="ourVideo">
+            <div class="our-label">Вы</div>
+            </div>
+          </div>
+        </div>
+      </div>
+     </div>
+    </div>
+   </section>
+
+   <section id="comparing-photo">
+     <div class="container">
+       <div class="row justify-content-md-center">
+         <div class="col-md-12 comparing">
+           <h3>Проверка фотографий личности</h3>
+         </div>      
+       </div>
+       <div class="row justify-content-md-center photos">
+         <div class="col-lg-4">
+           <div class="client-photo" id="photo">
+            Live фото клиента
+            <br><img id="personPhotoImg" height="500" width="500" alt="personPhotoImage">
+           </div>
+         </div>
+         <div class="col-lg-4">
+           <div class="pass-client-photo">Фото паспорта клиента
+            <br><img alt="passportImage" height="500" width="500" id="passportPhotoCompare">
+           </div>
+         </div>
+       </div>
+       <div class="row justify-content-md-center compare-but">
+         <div class="col-md-12">
+           <form enctype="multipart/form-data" name="fileinfo">
+             <div class="row justify-content-md-center align-items-center">
+               <div class="col-lg-4">
+                 <input class="btn-compare" id="searchButton" type="submit" value="Сравнить изображения"  class="show" data-dismiss="alert" aria-label="Show" onclick="document.getElementById('eventCount').style.display='block';"/>
+               </div>
+               <div class="col-lg-4 add-photo">
+                 <label for="formFile" class="form-label">Прикрепить разворот с фотографией паспорта</label>
+                 <input type="file" class="form-control"  accept="image/png,image/jpeg" id="passport" name="passport" required="required" />
+               </div>
+             </div>
+           </form>
+         </div>
+       </div>
+       <div class="row justify-content-md-center" >
+         <div class="col-md-8 alert-msg" id="note" >
+          <div  class="warn" id="eventCount">
+          </div>
+        </div>
+      </div>
+     </div>
+   </section>
+  
+   
+  </main>
+  
+  <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
+  <script src="http://code.jquery.com/jquery-latest.js"></script>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+
+  <script src="https://kit.fontawesome.com/580ad5ec86.js" crossorigin="anonymous"></script>
+
+  <!-- Option 1: Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous"></script>
+
+  <script>
+
+   var personPhoto = '';
+
+   $(document).ready(function () {
+
+       $("#searchButton").click(function (event) {
+
+           //stop submit the form, we will post it manually.
+           event.preventDefault();
+           fire_ajax_submit();
+
+       });
+
+   });
+
+   $('#note').show(1000, function(){
+  setTimeout(function(){
+    $('#note').hide(500);
+  }, 5000);
+});
+   function fire_ajax_submit() {
+
+       var form = document.forms.namedItem("fileinfo");
+       var data = new FormData(form);
+
+
+       data.append("personPhoto", personPhoto);
+       //data.append("passportPhoto", document.getElementById("passportPhotoCompare").src);
+
+       if (document.getElementById("eventCount"))
+           document.getElementById("eventCount").textContent="Фотографии обрабатываются, пожалуйста подождите";
+       else if (document.getElementById("reload"))
+           document.getElementById("reload").textContent="Фотографии обрабатываются, пожалуйста подождите";
+
+      setTimeout(function(){
+      document.getElementById('eventCount').style.display = 'none';
+    }, 5000);
+
+       $.ajax({
+           type: "POST",
+           enctype: 'multipart/form-data',
+           url: "/myCompare",
+           data: data,
+           //http://api.jquery.com/jQuery.ajax/
+           //https://developer.mozilla.org/en-US/docs/Web/API/FormData/Using_FormData_Objects
+           processData: false, //prevent jQuery from automatically transforming the data into a query string
+           contentType: false,
+           cache: false,
+           timeout: 600000,
+           success: function (data) {
+               $("#eventCount").replaceWith(data);
+               $("#reload").replaceWith(data);
+           },
+           error: function (e) {
+               $("#eventCount").replaceWith(e);
+           }
+       });
+
+   }
+
+   window.addEventListener('load',(event)=>{
+       var peer = new Peer()
+       var myStream;
+       var peerList =[];
+       peer.on('open',function(id){
+           document.getElementById("show-peer").innerHTML = id
+       })
+       peer.on('call', function(call){
+
+               navigator.mediaDevices.getUserMedia({
+                   video:true,
+                   audio:true
+               }).then((stream)=>{
+                   myStream = stream
+
+                   call.answer(stream)
+                   call.on('stream',function(remoteStream){
+                   if(peerList.length == 0){
+                       addRemoteVideo(remoteStream)
+                       addOurVideo(stream)
+                       peerList.push(call.peer)
+                   }
+                   })
+               }).catch((err)=>{
+                   console.log(err+" unable to get media")
+               })
+
+       })
+
+       document.getElementById("call-peer").addEventListener('click',(e)=>{
+           let remotePeerId = document.getElementById("peerID").value;
+           document.getElementById("show-peer").innerHTML = "connecting "+remotePeerId;
+           callPeer(remotePeerId);
+       })
+
+       document.getElementById("shot").addEventListener('click',(e)=>{
+           const video = document.getElementById("video");
+           const canvas = document.createElement("canvas");
+
+           canvas.width = video.videoWidth;
+           canvas.height = video.videoHeight;
+
+           canvas.getContext('2d')
+             .drawImage(video, 0, 0, 400, 300);
+
+           const dataURL = canvas.toDataURL("image/png");
+
+           personPhoto = dataURL;
+
+           document.getElementById("personPhotoImg").src=dataURL;
+       })
+
+       function callPeer(id){
+           navigator.mediaDevices.getUserMedia({
+               video:true,
+               audio:true
+           }).then((stream)=>{
+               myStream = stream
+
+               let call = peer.call(id, stream)
+               call.on('stream', function(remoteStream){
+                   if(peerList.length == 0){
+                       addRemoteVideo(remoteStream)
+                       addOurVideo(stream)
+                       peerList.push(call.peer)
+                   }
+               })
+           }).catch((err)=>{
+               console.log(err+" unable to get media")
+           })
+       }
+
+       function addRemoteVideo(stream){
+           let video = document.createElement("video");
+           video.classList.add("video")
+           video.setAttribute("id", "video");
+           video.srcObject=stream;
+           video.play()
+           document.getElementById("remoteVideo").append(video);
+       }
+
+       function addOurVideo(stream){
+           let video = document.createElement("video");
+           video.classList.add("video")
+           video.srcObject=stream;
+           video.play()
+           document.getElementById("ourVideo").append(video);
+       }
+   });
+  </script>
+
+ </body>
+</html>
